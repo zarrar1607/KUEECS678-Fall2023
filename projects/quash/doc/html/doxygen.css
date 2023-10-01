@@ -1591,6 +1591,11 @@ th.markdownTableHeadRight, td.markdownTableBodyRight {
 th.markdownTableHeadCenter, td.markdownTableBodyCenter {
 	text-align: center
 }
+pre{
+	background-color: rgba(239, 244, 248, 0.795);
+	border: 1px solid rgb(191, 226, 255);
+	font-family: monospace;
+}
 
 
 /* @end */
