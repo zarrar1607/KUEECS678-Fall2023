@@ -1,0 +1,345 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta content="en-us" http-equiv="Content-Language" />
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+<title>Lab 7 - Producer Consumer</title>
+<style type="text/css">
+.auto-style1 {
+	font-size: xx-large;
+}
+.auto-style2 {
+	font-size: large;
+}
+</style>
+</head>
+
+<body title="Lab">
+
+<table style="width: 100%">
+	<tr>
+		<td bgcolor="#C0C0C0" class="auto-style1">
+		<b style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: x-large; font-style: normal; font-variant: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: -webkit-left; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(204, 204, 204);">
+		Lab 7: Solving the Producer Consumer Problem with PThreads</b></td>
+	</tr>
+</table>
+<span style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: large; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); display: inline !important; float: none;">
+In this lab, we use PThreads to study the canonical Producer Consumer Problem. 
+The solutions we examine achieve synchronization through different mechanisms: 
+busy waiting and semaphores.</span><p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: large; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+In this lab we will ensure you see how to use some shared variables to both 
+exchange information between a producer and consumer in a queue, as well as 
+tracking the state of the information exchange queues.</p>
+<ul style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: large; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+	<li>Queues</li>
+	<li>State Variables</li>
+	<li>Busy Waiting</li>
+	<li>PThreads Mutexes</li>
+	<li>Semaphores</li>
+</ul>
+<p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: large; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+</p>
+<p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: large; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+The goal of the laboratory experience is to give you an appreciation of the 
+variations in behavior that can result from the concurrency present in a 
+mutli-threaded application, and to give you some experience with how to control 
+that concurrency to ensure correct computation behavior.</p>
+<p>&nbsp;</p>
+<table style="width: 100%">
+	<tr>
+		<td bgcolor="#C0C0C0" class="auto-style2"><strong>Lab Materials</strong></td>
+	</tr>
+</table>
+<ol>
+	<li><a href="ProducerConsumer.pdf">Slides</a></li>
+	<li><a href="eecs678_lab07_files.tar.gz">Lab Files</a></li>
+	</li><br/><br/>
+</ol>
+<table style="width: 100%">
+	<tr>
+		<td bgcolor="#C0C0C0" class="auto-style2"><strong>Assignment</strong></td>
+	</tr>
+</table>
+
+<p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+You need to complete the implementation of<span class="Apple-converted-space">&nbsp;</span><font face="arial">producer_consumer.c</font><span class="Apple-converted-space">&nbsp;</span>to 
+work with an arbitrary number of producer and consumer threads.<span class="Apple-converted-space">&nbsp;</span><font face="arial">producer_consumer</font><span class="Apple-converted-space">&nbsp;</span>takes 
+as its arguments the number of producer and consumer threads it will use. The 
+producers (combined) should produce exactly QMAX integers, and the consumers 
+(combined) should consume exactly QMAX integers.</p>
+<p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+The makefile as provided will build the<span class="Apple-converted-space">&nbsp;</span><strong>producer_consumer</strong><span class="Apple-converted-space">&nbsp;</span>executable 
+when you type `make` and as required when you use any of the targets 
+running tests. The test targets provided run the application with all 
+combinations of one consumer, one producer, five consumers, and five producers. 
+The tests produce a narrativeX.raw (X = the test # in the Makefile) file that provides the narative statements in 
+the order produced by all the threads running concurrently. For example, this is 
+the raw output for test 1 (one producer and one consumer) produced by our example 
+solution code. The stater code has not concurrency control implemented, so its 
+output will be quite different.</p>
+<pre style="color: rgb(0, 0, 0); font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);"> 
+  P-1 C-1   
+************
+    RAW     
+************
+prod 0:	 0.
+prod 0:	 1.
+prod 0:	 2.
+prod 0:	 3.
+prod 0:	 4.
+prod 0:	 FULL.
+con 0:	 0.
+con 0:	 1.
+con 0:	 2.
+con 0:	 3.
+con 0:	 4.
+prod 0:	 5.
+prod 0:	 6.
+prod 0:	 7.
+prod 0:	 8.
+prod 0:	 9.
+con 0:	 5.
+con 0:	 6.
+con 0:	 7.
+con 0:	 8.
+con 0:	 9.
+prod 0:	 10.
+prod 0:	 11.
+prod 0:	 12.
+prod 0:	 13.
+prod 0:	 14.
+con 0:	 10.
+con 0:	 11.
+con 0:	 12.
+con 0:	 13.
+con 0:	 14.
+con 0:	 EMPTY.
+prod 0:	 15.
+prod 0:	 16.
+prod 0:	 17.
+prod 0:	 18.
+con 0:	 15.
+con 0:	 16.
+con 0:	 17.
+con 0:	 18.
+con 0:	 EMPTY.
+prod 0:	 19.
+prod 0:	 20.
+prod 0:	 21.
+prod 0:	 22.
+con 0:	 19.
+con 0:	 20.
+con 0:	 21.
+con 0:	 22.
+con 0:	 EMPTY.
+prod 0:	 23.
+prod 0:	 24.
+prod 0:	 25.
+prod 0:	 26.
+con 0:	 23.
+con 0:	 24.
+con 0:	 25.
+con 0:	 26.
+con 0:	 EMPTY.
+prod 0:	 27.
+prod 0:	 28.
+prod 0:	 29.
+prod 0:	exited
+con 0:	 27.
+con 0:	 28.
+con 0:	 29.
+con 0:	exited
+      </pre>
+<p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+The narrativeX.sorted (X = the test # in the Makefile) file groups the narrative statements of each thread 
+together, but keeps them in the order produced. The raw file shows how actions 
+of different threads are interleaved, and the sorted file shows the order in 
+which each thread experienced execution.</p>
+<p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+The producers note when they see the queue as FULL and the consumers note when 
+they see it as EMPTY. Note the frequency with which consecutive FULL or EMPTY 
+statements occur in the narrative for a single thread. This shows how often a 
+thread is unblocked only to block again. You should run each test several times 
+to see how much behavior varies from run to run. For example, this is the sorted 
+output from our example solution code for 5 producers and 5 consumers.</p>
+<pre style="color: rgb(0, 0, 0); font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);"> 
+  P-5 C-5   
+************
+  Sorted    
+************
+con 0:	 0.
+con 0:	 1.
+con 0:	 2.
+con 0:	 3.
+con 0:	 4.
+con 0:	 21.
+con 0:	 22.
+con 0:	 23.
+con 0:	 24.
+con 0:	 25.
+con 0:	 26.
+con 0:	 27.
+con 0:	 EMPTY.
+con 0:	 28.
+con 0:	exited
+    
+con 1:	 5.
+con 1:	 6.
+con 1:	 7.
+con 1:	 8.
+con 1:	 9.
+con 1:	 10.
+con 1:	 11.
+con 1:	 EMPTY.
+con 1:	 29.
+con 1:	exited
+    
+con 2:	 12.
+con 2:	 13.
+con 2:	 14.
+con 2:	 15.
+con 2:	 16.
+con 2:	 17.
+con 2:	 18.
+con 2:	 EMPTY.
+con 2:	 19.
+con 2:	 20.
+con 2:	exited
+    
+con 3:	exited
+    
+con 4:	exited
+    
+prod 0:	 0.
+prod 0:	 1.
+prod 0:	 2.
+prod 0:	 3.
+prod 0:	 4.
+prod 0:	 FULL.
+prod 0:	 FULL.
+prod 0:	 FULL.
+prod 0:	 FULL.
+prod 0:	 8.
+prod 0:	 FULL.
+prod 0:	exited
+    
+prod 1:	 FULL.
+prod 1:	 5.
+prod 1:	 FULL.
+prod 1:	 FULL.
+prod 1:	 FULL.
+prod 1:	 FULL.
+prod 1:	 9.
+prod 1:	 FULL.
+prod 1:	 10.
+prod 1:	 FULL.
+prod 1:	 17.
+prod 1:	 FULL.
+prod 1:	 19.
+prod 1:	 20.
+prod 1:	 21.
+prod 1:	 22.
+prod 1:	 23.
+prod 1:	 FULL.
+prod 1:	 24.
+prod 1:	 25.
+prod 1:	 FULL.
+prod 1:	 26.
+prod 1:	 27.
+prod 1:	 28.
+prod 1:	 29.
+prod 1:	exited
+    
+prod 2:	exited
+    
+prod 3:	 FULL.
+prod 3:	 FULL.
+prod 3:	 6.
+prod 3:	 FULL.
+prod 3:	 FULL.
+prod 3:	 FULL.
+prod 3:	 FULL.
+prod 3:	 16.
+prod 3:	 FULL.
+prod 3:	 18.
+prod 3:	exited
+    
+prod 4:	 FULL.
+prod 4:	 FULL.
+prod 4:	 FULL.
+prod 4:	 7.
+prod 4:	 FULL.
+prod 4:	 FULL.
+prod 4:	 11.
+prod 4:	 12.
+prod 4:	 13.
+prod 4:	 14.
+prod 4:	 15.
+prod 4:	 FULL.
+prod 4:	 FULL.
+prod 4:	 FULL.
+prod 4:	exited
+      </pre>
+
+<p style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+	<span style="color: rgb(255, 0, 0);">The primary expecation of this lab is to avoid deadlocks for arbitrary number of producers and consumers. You are not required to print out the FULL/EMPTY strings. 
+		However, with the semaphore solution, if you do want to print the FULL/EMPTY status of the buffer, you should use the <a href="https://man7.org/linux/man-pages/man3/sem_getvalue.3.html">sem_getvalue</a> function 
+		to get the status of the semaphores and decide whether the buffer is full or empty accordingly.</span><br/><br/>
+There are several other patterns of behavior that you can observe in the output 
+from various runs of the program. The output also varies with the parameters 
+used for the<span class="Apple-converted-space">&nbsp;</span><strong>do_work()</strong><span class="Apple-converted-space">&nbsp;</span>routine, 
+which simulates work done by each thread outside the critical section. The code 
+as provided uses (5,50) for the consumer which says to execute the CPU bound 
+inner loop 5 times and then block for 50 milliseconds. The producer sets both of 
+these to zero, which obviously makes it more likely that the queue will become 
+full. Try different settings. Even modest amounts of production overhead make it 
+much less likely for the queue to fill.</p>
+
+<table style="width: 100%">
+	<tr>
+		<td bgcolor="#C0C0C0" class="auto-style2"><strong>Testing</strong></td>
+	</tr>
+</table>
+
+<span style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); display: inline !important; float: none;">
+	To test your code, we will use the `all-tests` target in the Makefile.
+	This will run each test and generate a 'narrativeX.raw' and 'narrativeX.sorted' for each test (X = the test #).
+	There are 4 tests total. The tests run your compiled `producer_consumer` executable as follows:
+	<ol>
+		<li>./producer_consumer 1 1    # 1 producer, 1 consumer</li>
+		<li>./producer_consumer 1 5    # 1 producer, 5 consumers</li>
+		<li>./producer_consumer 5 1    # 5 producers, 1 consumer</li>
+		<li>./producer_consumer 5 5    # 5 producers, 5 consumers</li>
+	</ol>
+
+	We will check to see that the output of each test demonstrates proper concurrency control
+	between producer and consumer threads. We will also check your source code to
+	ensure proper implementation.
+</span>
+
+<table style="width: 100%">
+	<tr>
+		<td bgcolor="#C0C0C0" class="auto-style2"><strong>Submission</strong></td>
+	</tr>
+</table>
+
+<span style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); display: inline !important; float: none;">
+You also need to tar up your lab for submission. For this step, you should use 
+the 'tar' target included in the lab's Makefile. Change the 'FIRST_NAME', 'LAST_NAME', and 'KUID' variables 
+in the Makefile to your student ID and type:</span><pre style="color: rgb(0, 0, 0); font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">    make tar
+</pre>
+The total grade for this lab will be awarded based on the submission of your code and your quiz answers and demo.
+<ol
+	style="color: rgb(0, 0, 0); font-family: 'Times New Roman'; font-size: medium; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: auto; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">
+	<li>75% (Lab submission) - Your submission on the canvas for this lab</li>
+	<li>10% (Quiz) - A short quiz about IPC </li>
+	<li>15% (Demo) - A quick demo of your submission will be taken on the following week during the lab hours </li>
+</ol>
+Please ensure that you have tested your final code on the EECS cycle servers.
+<p>&nbsp;</p>
+<p><a href="../index.html">&lt; Back to the Lab Home Page</a></p>
+
+</body>
+
+</html>
